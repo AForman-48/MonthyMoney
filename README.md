@@ -15,7 +15,7 @@ A SwiftUI app for iPhone and iPad (iOS 26) that replaces the monthly budget spre
 - **Budget**: the four columns of the sheet as coloured sections (green income, orange essentials, blue non-essentials, purple savings), each with a solid title row showing its monthly total and tinted rows below. Each entry can have a glyph. Tap an entry to edit it, swipe to delete, long-press to duplicate it (or change its pay method), and use Edit to reorder. Take Home stays on a glass bar at the bottom.
 - **Summary**: the spreadsheet's first page on one screen: the four colour-headed columns with at least ten rows each and their totals, the monthly and annual blocks stacked on the left, the Monthly Spend pie (touch and hold a slice to see its category and share) and the retirement chart (touch to see each year). Four columns across when there's room, fewer on narrower screens. Tap a row to edit it, or an empty row to add one.
 - **Retirement**: the yearly savings invested at a rate of return over a number of years (sliders; 10% and 40 years by default), with a chart you can scrub and an optional starting age so the chart and milestones read by age.
-- **Settings**: appearance, pay methods (off by default; turn them on to track the account or card each expense comes out of and to add your own), paycheques each year for Annual Income, and a reset.
+- **Settings**: appearance, pay methods (off by default; turn them on to track the account or card each expense comes out of and to add your own), whether amounts show cents (on by default; when off, amounts are rounded to the nearest dollar for display only), paycheques each year for Annual Income, and a reset.
 
 ## How the figures are worked out
 

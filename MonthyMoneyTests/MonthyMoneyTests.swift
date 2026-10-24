@@ -39,6 +39,26 @@ struct BudgetSummaryTests {
     }
 }
 
+struct FormattingTests {
+    @Test func centsShowWhenDecimalsAreOn() {
+        #expect(1350.5.cad(showsDecimals: true) == 1350.5.formatted(.currency(code: "CAD")))
+    }
+
+    @Test func amountsRoundToTheNearestDollarWhenDecimalsAreOff() {
+        let whole = { (value: Double) in value.formatted(.currency(code: "CAD").precision(.fractionLength(0))) }
+        #expect(1350.5.cad(showsDecimals: false) == whole(1351))
+        #expect(1350.49.cad(showsDecimals: false) == whole(1350))
+        #expect((-2.5).cad(showsDecimals: false) == whole(-3))
+    }
+
+    @Test func roundingLeavesTotalsExact() {
+        // Two items of $0.40 total $0.80, shown as $1 rather than $0 + $0.
+        let summary = BudgetSummary(income: 0, essentials: 0.4 + 0.4)
+        #expect(abs(summary.essentials - 0.8) < 0.0001)
+        #expect(summary.essentials.cad(showsDecimals: false) == 1.0.cad(showsDecimals: false))
+    }
+}
+
 struct RetirementProjectionTests {
     @Test func firstYearGrowsTheContribution() {
         let points = RetirementProjection.points(annualContribution: 9960, rate: 0.10, years: 2)

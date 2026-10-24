@@ -22,5 +22,9 @@ enum BudgetSettings {
     static let showsPayMethodsKey = "showsPayMethods"
     static let defaultShowsPayMethods = false
 
+    /// Whether amounts show cents. See `DisplaySettings`.
+    static let showsDecimalsKey = "showsDecimals"
+    static let defaultShowsDecimals = true
+
     static let hasCompletedWalkthroughKey = "hasCompletedWalkthrough"
 }

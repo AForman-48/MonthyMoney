@@ -47,6 +47,16 @@ struct SettingsView: View {
                 }
 
                 Section {
+                    Toggle(isOn: Bindable(DisplaySettings.shared).showsDecimals) {
+                        Label("Show Cents", systemImage: "centsign")
+                    }
+                } header: {
+                    Text("Amounts")
+                } footer: {
+                    Text("Turn off to show amounts rounded to the nearest dollar. Your exact amounts are kept, and totals still add up the cents.")
+                }
+
+                Section {
                     Stepper(value: $paycheques, in: 20...30) {
                         LabeledContent("Paycheques Each Year") {
                             Text("\(paycheques)").monospacedDigit()
