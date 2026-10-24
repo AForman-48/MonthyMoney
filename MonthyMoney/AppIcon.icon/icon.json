@@ -1,0 +1,29 @@
+{
+  "fill" : {
+    "linear-gradient" : [
+      "srgb:0.98039,0.98039,0.97255,1.00000",
+      "srgb:0.89412,0.90980,0.88627,1.00000"
+    ],
+    "orientation" : {
+      "start" : { "x" : 0.5, "y" : 0 },
+      "stop" : { "x" : 0.5, "y" : 1 }
+    }
+  },
+  "groups" : [
+    {
+      "name" : "Spend",
+      "layers" : [
+        { "name" : "Essentials", "image-name" : "Essentials.svg", "glass" : true },
+        { "name" : "NonEssentials", "image-name" : "NonEssentials.svg", "glass" : true },
+        { "name" : "Savings", "image-name" : "Savings.svg", "glass" : true },
+        { "name" : "TakeHome", "image-name" : "TakeHome.svg", "glass" : true }
+      ],
+      "shadow" : { "kind" : "neutral", "opacity" : 0.5 },
+      "translucency" : { "enabled" : true, "value" : 0.15 },
+      "specular" : true
+    }
+  ],
+  "supported-platforms" : {
+    "squares" : "shared"
+  }
+}
