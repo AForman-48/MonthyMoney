@@ -13,7 +13,8 @@ struct BudgetSummaryTests {
     }
 
     @Test func annualTotalsMatchTheSheet() {
-        #expect(sheet.annualIncome(incomeMonths: 14) == 56000)
+        #expect(sheet.annualIncome(paychequesPerYear: 26) == 52000)
+        #expect(sheet.annualIncome(paychequesPerYear: 24) == 48000)
         #expect(abs(sheet.annualExpenses - 37736.04) < 0.001)
         #expect(abs(sheet.annualTakeHome - 10263.96) < 0.001)
         #expect(abs(sheet.annualSavings - 9960) < 0.001)

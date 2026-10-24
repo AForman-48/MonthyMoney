@@ -28,8 +28,6 @@ struct PayMethodsView: View {
                 }
                 .onMove(perform: move)
                 .onDelete(perform: delete)
-            } footer: {
-                Text("Deleting a pay method leaves its items with no pay method.")
             }
         }
         .navigationTitle("Pay Methods")
@@ -74,6 +72,22 @@ struct PayMethodsView: View {
     private func delete(at offsets: IndexSet) {
         for index in offsets { context.delete(methods[index]) }
         try? context.save()
+    }
+}
+
+/// The pay methods list presented on its own, from the Budget screen.
+struct PayMethodsSheet: View {
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            PayMethodsView()
+                .toolbar {
+                    ToolbarItem(placement: .topBarLeading) {
+                        Button("Done", systemImage: "checkmark") { dismiss() }
+                    }
+                }
+        }
     }
 }
 

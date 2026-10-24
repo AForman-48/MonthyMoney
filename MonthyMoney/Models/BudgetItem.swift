@@ -14,6 +14,8 @@ final class BudgetItem {
     var sortOrder: Int = 0
     var createdAt: Date = Date.now
     var payMethod: PayMethod?
+    /// An SF Symbol shown beside the name, in the category's colour.
+    var symbolName: String?
 
     init(name: String, amount: Double, category: BudgetCategory, payMethod: PayMethod? = nil, sortOrder: Int = 0) {
         self.name = name

@@ -3,12 +3,16 @@ import SwiftUI
 
 struct BudgetView: View {
     @Environment(\.modelContext) private var context
+    @Environment(\.colorScheme) private var colorScheme
     @Query private var items: [BudgetItem]
     @Query(sort: [SortDescriptor(\PayMethod.sortOrder), SortDescriptor(\PayMethod.name)]) private var payMethods: [PayMethod]
+    @AppStorage(BudgetSettings.showsPayMethodsKey) private var showsPayMethods = true
     @State private var searchText = ""
     @State private var newItemCategory: BudgetCategory?
     @State private var editingItem: BudgetItem?
+    @State private var editingMethod: PayMethod?
     @State private var isShowingSettings = false
+    @State private var isShowingPayMethods = false
 
     private var filteredItems: [BudgetItem] {
         guard !searchText.isEmpty else { return items }
@@ -20,6 +24,11 @@ struct BudgetView: View {
 
     private var summary: BudgetSummary { BudgetSummary(items: items) }
 
+    /// The tint behind rows, like the shaded cells of the sheet.
+    private func rowTint(_ category: BudgetCategory) -> Color {
+        category.color.opacity(colorScheme == .dark ? 0.24 : 0.14)
+    }
+
     var body: some View {
         NavigationStack {
             List {
@@ -27,6 +36,8 @@ struct BudgetView: View {
                     let group = BudgetItem.sorted(filteredItems.filter { $0.category == category })
                     if !group.isEmpty || searchText.isEmpty {
                         Section {
+                            CategoryHeader(category: category, total: summary.total(for: category))
+                                .listRowBackground(category.color)
                             ForEach(group) { row(for: $0) }
                                 .onMove { move(group, from: $0, to: $1) }
                             if searchText.isEmpty {
@@ -36,13 +47,17 @@ struct BudgetView: View {
                                     Label("Add \(category.singularTitle)", systemImage: "plus.circle.fill")
                                         .foregroundStyle(category.color)
                                 }
+                                .listRowBackground(rowTint(category))
                             }
-                        } header: {
-                            CategoryHeader(category: category, total: summary.total(for: category))
                         }
                     }
                 }
+
+                if searchText.isEmpty {
+                    payMethodsSection
+                }
             }
+            .listSectionSpacing(20)
             .animation(.default, value: items.map(\.amount))
             .navigationTitle("Budget")
             .searchable(text: $searchText, prompt: "Search budget")
@@ -51,9 +66,15 @@ struct BudgetView: View {
                     ContentUnavailableView.search(text: searchText)
                 }
             }
+            .safeAreaBar(edge: .bottom) {
+                TakeHomeBar(takeHome: summary.takeHome)
+            }
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button("Settings", systemImage: "gearshape") { isShowingSettings = true }
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Pay Methods", systemImage: "creditcard") { isShowingPayMethods = true }
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     EditButton()
@@ -77,12 +98,43 @@ struct BudgetView: View {
             .sheet(isPresented: $isShowingSettings) {
                 SettingsView()
             }
+            .sheet(isPresented: $isShowingPayMethods) {
+                PayMethodsSheet()
+            }
             .sheet(item: $newItemCategory) { category in
                 BudgetItemEditorView(item: nil, category: category)
             }
             .sheet(item: $editingItem) { item in
                 BudgetItemEditorView(item: item, category: item.category)
             }
+            .sheet(item: $editingMethod) { method in
+                PayMethodEditorView(method: method)
+            }
+        }
+    }
+
+    private var payMethodsSection: some View {
+        Section {
+            ForEach(payMethods) { method in
+                Button {
+                    editingMethod = method
+                } label: {
+                    HStack {
+                        PayMethodBadge(method: method)
+                        Spacer()
+                        Text(method.monthlyTotal.cad)
+                            .monospacedDigit()
+                            .foregroundStyle(method.monthlyTotal == 0 ? Color.secondary : Color.primary)
+                    }
+                    .contentShape(.rect)
+                }
+                .buttonStyle(.plain)
+            }
+            Button("Manage Pay Methods", systemImage: "slider.horizontal.3") { isShowingPayMethods = true }
+        } header: {
+            Label("Pay Methods", systemImage: "creditcard")
+        } footer: {
+            Text("What comes out of each account or card every month. Tap one to rename it or change its colour.")
         }
     }
 
@@ -90,10 +142,11 @@ struct BudgetView: View {
         Button {
             editingItem = item
         } label: {
-            BudgetItemRow(item: item)
+            BudgetItemRow(item: item, showsPayMethod: showsPayMethods)
                 .contentShape(.rect)
         }
         .buttonStyle(.plain)
+        .listRowBackground(rowTint(item.category))
         .swipeActions(edge: .trailing) {
             Button("Delete", systemImage: "trash", role: .destructive) { delete(item) }
         }
@@ -133,6 +186,7 @@ struct BudgetView: View {
             sortOrder: BudgetItem.nextSortOrder(for: item.category, in: context)
         )
         copy.notes = item.notes
+        copy.symbolName = item.symbolName
         withAnimation {
             context.insert(copy)
             try? context.save()
@@ -147,22 +201,52 @@ struct BudgetView: View {
     }
 }
 
-/// A section header in the category's colour, with its monthly total.
+/// The coloured title row of a section, like the header cells of the sheet, with its monthly total.
 struct CategoryHeader: View {
     let category: BudgetCategory
     let total: Double
 
     var body: some View {
         HStack {
-            Label(category.title, systemImage: category.systemImage)
+            Label(category.title.uppercased(), systemImage: category.systemImage)
             Spacer()
             Text(total.cad)
                 .monospacedDigit()
                 .contentTransition(.numericText(value: total))
         }
         .font(.headline)
-        .foregroundStyle(category.color)
+        .foregroundStyle(.white)
         .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(.isHeader)
+    }
+}
+
+/// Monthly take home on a glass bar above the tab bar.
+struct TakeHomeBar: View {
+    let takeHome: Double
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: takeHome >= 0 ? "arrow.down.circle.fill" : "exclamationmark.circle.fill")
+                .foregroundStyle(takeHome >= 0 ? Color.income : Color.overspent)
+            Text("Take Home")
+                .foregroundStyle(.secondary)
+            Spacer(minLength: 4)
+            Text(takeHome.cad)
+                .fontWeight(.semibold)
+                .monospacedDigit()
+                .contentTransition(.numericText(value: takeHome))
+            Text("/ mo")
+                .foregroundStyle(.secondary)
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 12)
+        .glassEffect(.regular, in: .capsule)
+        .padding(.horizontal)
+        .padding(.bottom, 8)
+        .animation(.default, value: takeHome)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Take home \(takeHome.cad) a month")
     }
 }
 

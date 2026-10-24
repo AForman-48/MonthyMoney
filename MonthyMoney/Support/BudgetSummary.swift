@@ -39,8 +39,8 @@ struct BudgetSummary: Equatable {
 
     var takeHome: Double { income - totalExpenses }
 
-    /// Monthly income times the months of pay in a year (the sheet uses 14).
-    func annualIncome(incomeMonths: Double) -> Double { income * incomeMonths }
+    /// Monthly income counts as two paycheques, so 26 paycheques a year is 13 months of pay.
+    func annualIncome(paychequesPerYear: Int) -> Double { income * Double(paychequesPerYear) / 2 }
 
     var annualExpenses: Double { totalExpenses * 12 }
 

@@ -8,7 +8,12 @@ struct RetirementView: View {
     @Query private var items: [BudgetItem]
     @AppStorage(BudgetSettings.returnRateKey) private var returnRate = BudgetSettings.defaultReturnRate
     @AppStorage(BudgetSettings.yearsKey) private var years = BudgetSettings.defaultYears
-    @State private var selectedYear: Int?
+    @AppStorage(BudgetSettings.usesAgeKey) private var usesAge = false
+    @AppStorage(BudgetSettings.startAgeKey) private var startAge = BudgetSettings.defaultStartAge
+    /// The chart position being scrubbed, as a year or an age depending on `usesAge`.
+    @State private var selectedX: Int?
+    /// The year picked under Look Up.
+    @State private var lookUpYear = 10
 
     private var annualSavings: Double { BudgetSummary(items: items).annualSavings }
 
@@ -16,9 +21,19 @@ struct RetirementView: View {
         RetirementProjection.points(annualContribution: annualSavings, rate: returnRate, years: years)
     }
 
+    /// Where a year sits on the chart: the year itself, or the age in that year.
+    private func x(for year: Int) -> Int { usesAge ? startAge + year - 1 : year }
+
+    /// "Year 12" or "Age 41".
+    private func label(for year: Int) -> String { usesAge ? "Age \(startAge + year - 1)" : "Year \(year)" }
+
     private var selectedPoint: RetirementProjection.Point? {
-        guard let selectedYear else { return nil }
-        return points.first { $0.year == selectedYear }
+        guard let selectedX else { return nil }
+        return points.first { x(for: $0.year) == selectedX }
+    }
+
+    private var lookUpPoint: RetirementProjection.Point? {
+        points.first { $0.year == min(max(lookUpYear, 1), years) }
     }
 
     var body: some View {
@@ -27,7 +42,7 @@ struct RetirementView: View {
                 Section {
                     let shown = selectedPoint ?? points.last
                     VStack(alignment: .leading, spacing: 4) {
-                        Text(shown.map { "After \($0.year == 1 ? "1 year" : "\($0.year) years")" } ?? "Retirement Savings")
+                        Text(shown.map { usesAge ? "By age \(startAge + $0.year - 1)" : "After \($0.year == 1 ? "1 year" : "\($0.year) years")" } ?? "Retirement Savings")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                         Text((shown?.balance ?? 0).cad)
@@ -46,15 +61,11 @@ struct RetirementView: View {
                     LabeledContent("Saved Each Year") {
                         Text(annualSavings.cad).monospacedDigit()
                     }
-                    Stepper(value: $returnRate, in: 0...0.20, step: 0.005) {
-                        LabeledContent("Rate of Return") {
-                            Text(returnRate.percent).monospacedDigit()
-                        }
+                    SliderRow(title: "Rate of Return", value: returnRate.percent) {
+                        Slider(value: $returnRate, in: 0...0.15, step: 0.005)
                     }
-                    Stepper(value: $years, in: 1...60) {
-                        LabeledContent("Years") {
-                            Text("\(years)").monospacedDigit()
-                        }
+                    SliderRow(title: "Years", value: "\(years)") {
+                        Slider(value: intBinding($years), in: 1...60, step: 1)
                     }
                 } header: {
                     Text("Assumptions")
@@ -62,9 +73,41 @@ struct RetirementView: View {
                     Text("Saved Each Year is your monthly Savings total times 12. Each year's savings are added and the balance grows by the rate of return.")
                 }
 
+                Section {
+                    Toggle("Track by Age", isOn: $usesAge.animation())
+                    if usesAge {
+                        Stepper(value: $startAge, in: 14...90) {
+                            LabeledContent("Age in Year 1") {
+                                Text("\(startAge)").monospacedDigit()
+                            }
+                        }
+                    }
+                } header: {
+                    Text("Age")
+                } footer: {
+                    if usesAge {
+                        Text("Year 1 is age \(startAge), so year \(years) is age \(startAge + years - 1).")
+                    } else {
+                        Text("Label the chart by your age instead of the year.")
+                    }
+                }
+
+                Section("Look Up") {
+                    SliderRow(title: usesAge ? "Age" : "Year", value: "\(x(for: min(max(lookUpYear, 1), years)))") {
+                        Slider(value: intBinding($lookUpYear), in: 1...Double(max(years, 2)), step: 1)
+                    }
+                    if let lookUpPoint {
+                        LabeledContent("You'd Have Saved") {
+                            Text(lookUpPoint.balance.cad)
+                                .monospacedDigit()
+                                .foregroundStyle(Color.retirement)
+                        }
+                    }
+                }
+
                 Section("Milestones") {
                     ForEach(points.filter { $0.year % 5 == 0 || $0.year == years }) { point in
-                        LabeledContent("Year \(point.year)") {
+                        LabeledContent(label(for: point.year)) {
                             Text(point.balance.cad).monospacedDigit()
                         }
                     }
@@ -72,13 +115,21 @@ struct RetirementView: View {
             }
             .navigationTitle("Retirement")
             .tint(.retirement)
+            .onChange(of: years) { _, newValue in
+                lookUpYear = min(lookUpYear, newValue)
+            }
         }
+    }
+
+    /// Lets a Slider, which works in Doubles, drive a whole-number setting.
+    private func intBinding(_ binding: Binding<Int>) -> Binding<Double> {
+        Binding(get: { Double(binding.wrappedValue) }, set: { binding.wrappedValue = Int($0.rounded()) })
     }
 
     private var chart: some View {
         Chart(points) { point in
             AreaMark(
-                x: .value("Year", point.year),
+                x: .value(usesAge ? "Age" : "Year", x(for: point.year)),
                 y: .value("Balance", point.balance)
             )
             .interpolationMethod(.catmullRom)
@@ -90,7 +141,7 @@ struct RetirementView: View {
                 )
             )
             LineMark(
-                x: .value("Year", point.year),
+                x: .value(usesAge ? "Age" : "Year", x(for: point.year)),
                 y: .value("Balance", point.balance)
             )
             .interpolationMethod(.catmullRom)
@@ -98,19 +149,19 @@ struct RetirementView: View {
             .lineStyle(StrokeStyle(lineWidth: 2.5))
 
             if let selectedPoint, selectedPoint.year == point.year {
-                RuleMark(x: .value("Year", point.year))
+                RuleMark(x: .value(usesAge ? "Age" : "Year", x(for: point.year)))
                     .foregroundStyle(Color.secondary.opacity(0.5))
                 PointMark(
-                    x: .value("Year", point.year),
+                    x: .value(usesAge ? "Age" : "Year", x(for: point.year)),
                     y: .value("Balance", point.balance)
                 )
                 .foregroundStyle(Color.retirement)
                 .symbolSize(80)
             }
         }
-        .chartXSelection(value: $selectedYear)
-        .chartXScale(domain: 1...max(years, 2))
-        .chartXAxisLabel("Year")
+        .chartXSelection(value: $selectedX)
+        .chartXScale(domain: x(for: 1)...x(for: max(years, 2)))
+        .chartXAxisLabel(usesAge ? "Age" : "Year")
         .chartYAxis {
             AxisMarks { value in
                 AxisGridLine()
@@ -122,7 +173,25 @@ struct RetirementView: View {
             }
         }
         .frame(height: 260)
-        .accessibilityLabel("Retirement savings by year")
+        .accessibilityLabel("Retirement savings by \(usesAge ? "age" : "year")")
+    }
+}
+
+/// A setting with its current value on the first line and a slider under it.
+struct SliderRow<Control: View>: View {
+    let title: String
+    let value: String
+    @ViewBuilder let control: Control
+
+    var body: some View {
+        VStack(spacing: 6) {
+            LabeledContent(title) {
+                Text(value).monospacedDigit()
+            }
+            control
+                .accessibilityLabel(title)
+                .accessibilityValue(value)
+        }
     }
 }
 

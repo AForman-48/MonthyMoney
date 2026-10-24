@@ -11,11 +11,11 @@ A SwiftUI app for iPhone and iPad (iOS 26) that replaces the monthly budget spre
 
 ## Screens
 
-- **Budget**: the four columns of the sheet as sections in their colours (green income, orange essentials, blue non-essentials, purple savings), each with its monthly total. Tap an entry to edit it, swipe to delete, long-press to change its pay method or duplicate it, and use Edit to reorder.
+- **Walkthrough**: on first launch, enter your monthly income, one essential (like rent) and one non-essential (like a streaming subscription).
+- **Budget**: the four columns of the sheet as coloured sections (green income, orange essentials, blue non-essentials, purple savings), each with a solid title row showing its monthly total and tinted rows below. Each entry can have a glyph and shows its pay method (hide pay methods in Settings). Tap an entry to edit it, swipe to delete, long-press to change its pay method or duplicate it, and use Edit to reorder. Pay methods and their monthly totals sit at the bottom of the list and behind the card button in the toolbar. Take Home stays on a glass bar at the bottom.
 - **Summary**: Total Income, Total Expenses and Take Home; the Monthly Spend donut (tap a slice for its share); the annual figures; the projected retirement savings; and what comes out of each pay method every month.
-- **Retirement**: the yearly savings invested at a rate of return over a number of years (10% and 40 years by default, like the sheet), with a chart you can scrub and milestones every five years.
-- **Take Home** stays visible above the tab bar on every screen.
-- **Settings**: appearance, pay methods (name and colour; the sheet's dropdown list is added on first launch), the months of pay used for Annual Income, and a reset.
+- **Retirement**: the yearly savings invested at a rate of return over a number of years (sliders; 10% and 40 years by default), with a chart you can scrub, an optional starting age so the chart and milestones read by age, and a look-up for any year or age.
+- **Settings**: appearance, showing pay methods on the budget, paycheques each year for Annual Income, and a reset.
 
 ## How the figures are worked out
 
@@ -25,7 +25,7 @@ These follow the formulas on the spreadsheet's first sheet:
 | --- | --- |
 | Total Expenses | Essentials + Non-Essentials + Savings |
 | Take Home | Income − Total Expenses |
-| Annual Income | Income × months of pay (14 in the sheet, changeable in Settings) |
+| Annual Income | Income × paycheques each year ÷ 2 (monthly income counts as two paycheques; 26 a year is 13 months of pay) |
 | Annual Expenses, Take Home, Savings | Monthly figure × 12 |
 | Retirement Savings | Each year: (balance + Annual Savings) × (1 + rate), for the number of years |
 

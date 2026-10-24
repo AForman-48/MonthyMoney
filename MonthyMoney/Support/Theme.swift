@@ -6,7 +6,10 @@ extension Color {
     static let essentials = Color(red: 0.90, green: 0.45, blue: 0.23)
     static let nonEssentials = Color(red: 0.36, green: 0.56, blue: 0.90)
     static let savings = Color(red: 0.56, green: 0.47, blue: 0.78)
-    static let retirement = Color(red: 0.84, green: 0.28, blue: 0.28)
+    /// Retirement is a deeper purple than savings so the two read apart.
+    static let retirement = Color(red: 0.47, green: 0.30, blue: 0.80)
+    /// A negative take home.
+    static let overspent = Color.red
     /// Annual figures sit in the sheet's purple block.
     static let annual = savings
 }

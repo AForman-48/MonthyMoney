@@ -27,6 +27,7 @@ struct MonthyMoneyApp: App {
         // For App Store screenshots: launch with -seedSampleData to fill an empty store.
         if CommandLine.arguments.contains("-seedSampleData") {
             SeedData.insertSampleIfEmpty(into: container.mainContext)
+            UserDefaults.standard.set(true, forKey: BudgetSettings.hasCompletedWalkthroughKey)
         }
         #endif
         SeedData.insertDefaultPayMethodsIfNeeded(into: container.mainContext)

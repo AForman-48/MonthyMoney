@@ -12,6 +12,8 @@ struct BudgetItemEditorView: View {
     @State private var amount: Double?
     @State private var payMethod: PayMethod?
     @State private var notes = ""
+    @State private var symbolName: String?
+    @State private var isChoosingGlyph = false
     @State private var isConfirmingDelete = false
     @FocusState private var nameFocused: Bool
 
@@ -52,6 +54,30 @@ struct BudgetItemEditorView: View {
                     }
                 }
 
+                Section {
+                    Button {
+                        isChoosingGlyph = true
+                    } label: {
+                        HStack(spacing: 12) {
+                            if let symbolName {
+                                GlyphTile(symbolName: symbolName, color: category.color)
+                                Text("Change Glyph")
+                            } else {
+                                Label("Add Glyph", systemImage: "square.grid.3x3.square")
+                            }
+                        }
+                    }
+                    if symbolName != nil {
+                        Button("Remove Glyph", systemImage: "trash", role: .destructive) {
+                            withAnimation { symbolName = nil }
+                        }
+                    }
+                } header: {
+                    Text("Glyph")
+                } footer: {
+                    Text("Shown beside the name in the budget, in the category's colour.")
+                }
+
                 Section("Notes") {
                     TextField("Due date, account number, reminders", text: $notes, axis: .vertical)
                         .lineLimit(3...6)
@@ -84,6 +110,12 @@ struct BudgetItemEditorView: View {
                     dismiss()
                 }
             }
+            // Presented from here rather than from inside the Form, where it can dismiss the editor.
+            .sheet(isPresented: $isChoosingGlyph) {
+                GlyphPickerView(selected: symbolName, color: category.color) { picked in
+                    withAnimation { symbolName = picked }
+                }
+            }
             .onAppear(perform: load)
         }
     }
@@ -97,6 +129,7 @@ struct BudgetItemEditorView: View {
         amount = item.amount
         payMethod = item.payMethod
         notes = item.notes
+        symbolName = item.symbolName
     }
 
     private func save() {
@@ -118,6 +151,7 @@ struct BudgetItemEditorView: View {
         target.amount = amount ?? 0
         target.payMethod = category.usesPayMethod ? payMethod : nil
         target.notes = notes
+        target.symbolName = symbolName
         try? context.save()
         dismiss()
     }

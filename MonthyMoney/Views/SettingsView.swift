@@ -5,8 +5,15 @@ struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var context
     @AppStorage(AppAppearance.storageKey) private var appearance: AppAppearance = .system
-    @AppStorage(BudgetSettings.incomeMonthsKey) private var incomeMonths = BudgetSettings.defaultIncomeMonths
+    @AppStorage(BudgetSettings.paychequesKey) private var paycheques = BudgetSettings.defaultPaycheques
+    @AppStorage(BudgetSettings.showsPayMethodsKey) private var showsPayMethods = true
     @State private var isConfirmingDelete = false
+
+    /// Monthly income counts as two paycheques, so this says how many months of pay a year holds.
+    private var paychequeFooter: String {
+        let months = (Double(paycheques) / 2).formatted()
+        return "Your monthly income counts as two paycheques. Paid every two weeks, you get 26 a year, with three in two of the months. With \(paycheques) paycheques, Annual Income is \(months) months of pay."
+    }
 
     var body: some View {
         NavigationStack {
@@ -22,24 +29,26 @@ struct SettingsView: View {
                     Text("Appearance")
                 }
 
-                Section("Budget") {
-                    NavigationLink {
-                        PayMethodsView()
-                    } label: {
-                        Label("Pay Methods", systemImage: "creditcard")
+                Section {
+                    Toggle(isOn: $showsPayMethods) {
+                        Label("Show Pay Methods", systemImage: "creditcard")
                     }
+                } header: {
+                    Text("Budget")
+                } footer: {
+                    Text("Shows the account or card each expense comes out of under its name.")
                 }
 
                 Section {
-                    Stepper(value: $incomeMonths, in: 12...16, step: 0.5) {
-                        LabeledContent("Months of Pay") {
-                            Text(incomeMonths.formatted()).monospacedDigit()
+                    Stepper(value: $paycheques, in: 20...30) {
+                        LabeledContent("Paycheques Each Year") {
+                            Text("\(paycheques)").monospacedDigit()
                         }
                     }
                 } header: {
                     Text("Annual Income")
                 } footer: {
-                    Text("Annual Income is your monthly income times this number. Your spreadsheet used 14; use 12 for pay that's the same every month.")
+                    Text(paychequeFooter)
                 }
 
                 Section {

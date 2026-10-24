@@ -5,7 +5,7 @@ import SwiftUI
 struct SummaryView: View {
     @Query private var items: [BudgetItem]
     @Query(sort: [SortDescriptor(\PayMethod.sortOrder), SortDescriptor(\PayMethod.name)]) private var payMethods: [PayMethod]
-    @AppStorage(BudgetSettings.incomeMonthsKey) private var incomeMonths = BudgetSettings.defaultIncomeMonths
+    @AppStorage(BudgetSettings.paychequesKey) private var paycheques = BudgetSettings.defaultPaycheques
     @AppStorage(BudgetSettings.returnRateKey) private var returnRate = BudgetSettings.defaultReturnRate
     @AppStorage(BudgetSettings.yearsKey) private var years = BudgetSettings.defaultYears
 
@@ -26,7 +26,7 @@ struct SummaryView: View {
                         Text(summary.takeHome.cad)
                             .font(.largeTitle.bold())
                             .monospacedDigit()
-                            .foregroundStyle(summary.takeHome >= 0 ? Color.income : Color.retirement)
+                            .foregroundStyle(summary.takeHome >= 0 ? Color.income : Color.overspent)
                             .contentTransition(.numericText(value: summary.takeHome))
                         Text("each month after expenses and savings")
                             .font(.subheadline)
@@ -50,14 +50,14 @@ struct SummaryView: View {
                 }
 
                 Section {
-                    SummaryRow(title: "Annual Income", value: summary.annualIncome(incomeMonths: incomeMonths), systemImage: "banknote", color: .annual)
+                    SummaryRow(title: "Annual Income", value: summary.annualIncome(paychequesPerYear: paycheques), systemImage: "banknote", color: .annual)
                     SummaryRow(title: "Annual Expenses", value: summary.annualExpenses, systemImage: "cart", color: .annual)
                     SummaryRow(title: "Annual Take Home", value: summary.annualTakeHome, systemImage: "arrow.down.circle", color: .annual)
                     SummaryRow(title: "Annual Savings", value: summary.annualSavings, systemImage: "building.columns", color: .annual)
                 } header: {
                     Text("Annual")
                 } footer: {
-                    Text("Annual Income counts \(incomeMonths.formatted()) months of pay; the others count 12. Change this in Settings.")
+                    Text("Annual Income counts \(paycheques) paycheques; the others count 12 months. Change this in Settings.")
                 }
 
                 Section("Retirement") {
@@ -117,7 +117,7 @@ struct SummaryRow: View {
         LabeledContent {
             Text(value.cad)
                 .monospacedDigit()
-                .foregroundStyle(value < 0 ? Color.retirement : Color.primary)
+                .foregroundStyle(value < 0 ? Color.overspent : Color.primary)
                 .contentTransition(.numericText(value: value))
         } label: {
             Label {
