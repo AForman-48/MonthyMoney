@@ -13,6 +13,7 @@ A SwiftUI app for iPhone and iPad (iOS 26) that replaces the monthly budget spre
 
 - **Walkthrough**: on first launch, enter your monthly income, one essential (like rent) and one non-essential (like a streaming subscription).
 - **Budget**: the four columns of the sheet as coloured sections (green income, orange essentials, blue non-essentials, purple savings), each with a solid title row showing its monthly total and tinted rows below. Each entry can have a glyph and shows its pay method (hide pay methods in Settings). Tap an entry to edit it, swipe to delete, long-press to change its pay method or duplicate it, and use Edit to reorder. Pay methods and their monthly totals sit at the bottom of the list and behind the card button in the toolbar. Take Home stays on a glass bar at the bottom.
+- **Sheet**: the spreadsheet's first page on one screen: the four colour-headed columns with at least ten rows each and their totals, the monthly and annual blocks, the Monthly Spend pie and the retirement projection. Four columns across on iPad, two by two on iPhone. Tap a row to edit it, or an empty row to add one.
 - **Summary**: Total Income, Total Expenses and Take Home; the Monthly Spend donut (tap a slice for its share); the annual figures; the projected retirement savings; and what comes out of each pay method every month.
 - **Retirement**: the yearly savings invested at a rate of return over a number of years (sliders; 10% and 40 years by default), with a chart you can scrub, an optional starting age so the chart and milestones read by age, and a look-up for any year or age.
 - **Settings**: appearance, showing pay methods on the budget, paycheques each year for Annual Income, and a reset.
@@ -33,4 +34,4 @@ The sheet's retirement column uses 5% instead of 10% in years 23 and 39, which l
 
 ## Sync notes
 
-New installs start with an empty budget and the default pay methods. If two devices add the default pay methods before they sync, pay methods with the same name are merged automatically (`SyncCleanup.swift`). For screenshots, a Debug build launched with `-seedSampleData` fills an empty store with a made-up sample budget, and `-screenshotScreen budget|summary|retirement|settings` opens a screen.
+New installs start with an empty budget and the default pay methods. If two devices add the default pay methods before they sync, pay methods with the same name are merged automatically (`SyncCleanup.swift`). For screenshots, a Debug build launched with `-seedSampleData` fills an empty store with a made-up sample budget, and `-screenshotScreen budget|sheet|summary|retirement|settings` opens a screen.
