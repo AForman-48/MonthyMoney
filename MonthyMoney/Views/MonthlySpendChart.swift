@@ -85,6 +85,8 @@ struct MonthlySpendChart: View {
                         .fill(slice.kind.color)
                         .frame(width: 10, height: 10)
                     Text(slice.kind.rawValue)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
                     Spacer()
                     Text(slice.share.percent)
                         .foregroundStyle(.secondary)

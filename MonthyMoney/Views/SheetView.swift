@@ -24,8 +24,17 @@ struct SheetView: View {
         RetirementProjection.points(annualContribution: summary.annualSavings, rate: returnRate, years: years)
     }
 
-    /// Four columns side by side on iPad, two by two on iPhone.
-    private var columnCount: Int { sizeClass == .regular ? 4 : 2 }
+    /// The width the page lays out in, measured so the columns get enough room to be readable.
+    @State private var contentWidth: CGFloat = 0
+
+    /// Four columns across when they fit, otherwise two by two, otherwise one under another.
+    /// A column needs more room when it shows a pay method.
+    private var columnCount: Int {
+        let minimum: CGFloat = showsPayMethods ? 270 : 160
+        if contentWidth >= minimum * 4 + 36 { return 4 }
+        if contentWidth >= minimum * 2 + 12 { return 2 }
+        return 1
+    }
 
     var body: some View {
         NavigationStack {
@@ -51,6 +60,7 @@ struct SheetView: View {
                 .padding(.horizontal, 12)
                 .padding(.bottom, 12)
             }
+            .onGeometryChange(for: CGFloat.self) { $0.size.width - 24 } action: { contentWidth = $0 }
             .navigationTitle("Sheet")
             .navigationBarTitleDisplayMode(.inline)
             .sheet(item: $newItemCategory) { category in
@@ -108,7 +118,7 @@ struct SheetView: View {
             totalsBlock
             annualBlock
             SheetBlock(color: .retirement) {
-                SheetTotalCell(title: "Retirement Savings", value: points.last?.balance ?? 0, color: .retirement)
+                SheetTotalCell(title: "Retirement", value: points.last?.balance ?? 0, color: .retirement)
             }
         }
     }
@@ -255,7 +265,7 @@ private struct SheetHeaderCell<Accessory: View>: View {
 }
 
 /// Width of the amount column, shared by the titles and the rows so they line up.
-private let sheetAmountWidth: CGFloat = 76
+private let sheetAmountWidth: CGFloat = 64
 
 /// The sub-column titles under a column's header.
 private struct SheetColumnTitles: View {
