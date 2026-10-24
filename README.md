@@ -6,7 +6,7 @@ A SwiftUI app for iPhone and iPad (iOS 26) that replaces the monthly budget spre
 
 1. Open `MonthyMoney.xcodeproj` in Xcode 26.
 2. Select the **MonthyMoney** target, then **Signing & Capabilities**, and pick your team. A paid Apple Developer account is needed for iCloud sync.
-3. If Xcode reports that the bundle identifier `ca.aforman.MonthyMoney` or the container `iCloud.ca.aforman.MonthyMoney` is taken, change both to something unique (also update the container name in `MonthyMoneyApp.swift` and `CloudKitSchema.swift`).
+3. If Xcode reports that the bundle identifier `ca.aforman.MonthyMoney` or the container `iCloud.ca.aforman.MonthyMoney` is taken, change both to something unique (also update `CloudSync.containerIdentifier` in `CloudSync.swift`).
 4. Run on a simulator or your device. Run the tests with ⌘U.
 
 ## Screens
@@ -31,6 +31,21 @@ These follow the formulas on the spreadsheet's first sheet:
 
 The sheet's retirement column uses 5% instead of 10% in years 23 and 39, which looks like a typo, so the app uses the same rate every year. With the sheet's numbers that gives $4,849,044 after 40 years rather than the sheet's $4,626,852.
 
-## Sync notes
+## iCloud sync
+
+- **What syncs:** budget items and pay methods through SwiftData's CloudKit store (the private database of `iCloud.ca.aforman.MonthyMoney`), and the settings (paycheques, rate of return, years, age, pay methods on/off, show cents, walkthrough finished) through iCloud key-value storage (`CloudSync.swift`). Appearance stays per device.
+- **A second device** skips the walkthrough, or closes it, as soon as the budget or the finished-walkthrough flag arrives from iCloud, so no duplicate entries are made.
+- **Settings → iCloud** shows whether sync is on or asks you to sign in to iCloud.
+- Without an iCloud account, or in unsigned builds, the app works on the device alone.
+
+### Before TestFlight or the App Store
+
+1. Run a signed Debug build once with the launch argument `-initializeCloudKitSchema`.
+2. In CloudKit Console, open `iCloud.ca.aforman.MonthyMoney` and choose Deploy Schema Changes to Production.
+3. Repeat whenever a model gains a field.
+
+Automatic signing adds the iCloud key-value storage capability to the App ID.
+
+### Sync notes
 
 New installs start with an empty budget and no pay methods. If two devices add a pay method with the same name before they sync, the two are merged automatically (`SyncCleanup.swift`). For screenshots, a Debug build launched with `-seedSampleData` fills an empty store with a made-up sample budget, and `-screenshotScreen budget|summary|retirement|settings|walkthrough` opens a screen.

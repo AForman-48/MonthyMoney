@@ -34,6 +34,14 @@ struct RootView: View {
             if !items.isEmpty { hasCompletedWalkthrough = true }
             isShowingWalkthrough = !hasCompletedWalkthrough
         }
+        // On a new device the budget and settings can arrive from iCloud after launch. When they do,
+        // the walkthrough closes rather than adding a second set of entries.
+        .onChange(of: items.isEmpty) { _, isEmpty in
+            if !isEmpty { hasCompletedWalkthrough = true }
+        }
+        .onChange(of: hasCompletedWalkthrough) { _, completed in
+            if completed { isShowingWalkthrough = false }
+        }
         .fullScreenCover(isPresented: $isShowingWalkthrough) {
             WalkthroughView()
         }

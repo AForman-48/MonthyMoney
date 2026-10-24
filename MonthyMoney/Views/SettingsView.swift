@@ -1,3 +1,4 @@
+import CloudKit
 import SwiftData
 import SwiftUI
 
@@ -69,6 +70,14 @@ struct SettingsView: View {
                 }
 
                 Section {
+                    ICloudStatusRow()
+                } header: {
+                    Text("iCloud")
+                } footer: {
+                    Text("Your budget, pay methods and settings sync to your other iPhone and iPad signed in to the same Apple Account. Appearance is set on each device.")
+                }
+
+                Section {
                     Button(role: .destructive) {
                         isConfirmingDelete = true
                     } label: {
@@ -99,6 +108,32 @@ struct SettingsView: View {
                     Button("Done", systemImage: "checkmark") { dismiss() }
                 }
             }
+        }
+    }
+}
+
+/// Whether iCloud sync is working, from the iCloud account on this device.
+private struct ICloudStatusRow: View {
+    @State private var status: String?
+
+    var body: some View {
+        LabeledContent {
+            Text(status ?? "Checking…")
+        } label: {
+            Label("iCloud Sync", systemImage: "icloud")
+        }
+        .task { status = await Self.currentStatus() }
+    }
+
+    private static func currentStatus() async -> String {
+        guard CloudSync.isEnabled else { return "Off in This Build" }
+        let accountStatus = try? await CKContainer(identifier: CloudSync.containerIdentifier).accountStatus()
+        switch accountStatus {
+        case .available: return "On"
+        case .noAccount: return "Sign In to iCloud"
+        case .restricted: return "Restricted"
+        case .temporarilyUnavailable: return "Temporarily Unavailable"
+        default: return "Unavailable"
         }
     }
 }

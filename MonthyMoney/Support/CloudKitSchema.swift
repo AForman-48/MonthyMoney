@@ -16,7 +16,7 @@ enum CloudKitSchema {
             }
             let url = URL.temporaryDirectory.appending(path: "SchemaInit.sqlite")
             let description = NSPersistentStoreDescription(url: url)
-            description.cloudKitContainerOptions = NSPersistentCloudKitContainerOptions(containerIdentifier: "iCloud.ca.aforman.MonthyMoney")
+            description.cloudKitContainerOptions = NSPersistentCloudKitContainerOptions(containerIdentifier: CloudSync.containerIdentifier)
             description.shouldAddStoreAsynchronously = false
             let container = NSPersistentCloudKitContainer(name: "SchemaInit", managedObjectModel: model)
             container.persistentStoreDescriptions = [description]
