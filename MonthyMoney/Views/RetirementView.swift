@@ -12,8 +12,6 @@ struct RetirementView: View {
     @AppStorage(BudgetSettings.startAgeKey) private var startAge = BudgetSettings.defaultStartAge
     /// The chart position being scrubbed, as a year or an age depending on `usesAge`.
     @State private var selectedX: Int?
-    /// The year picked under Look Up.
-    @State private var lookUpYear = 10
 
     private var annualSavings: Double { BudgetSummary(items: items).annualSavings }
 
@@ -30,10 +28,6 @@ struct RetirementView: View {
     private var selectedPoint: RetirementProjection.Point? {
         guard let selectedX else { return nil }
         return points.first { x(for: $0.year) == selectedX }
-    }
-
-    private var lookUpPoint: RetirementProjection.Point? {
-        points.first { $0.year == min(max(lookUpYear, 1), years) }
     }
 
     var body: some View {
@@ -92,19 +86,6 @@ struct RetirementView: View {
                     }
                 }
 
-                Section("Look Up") {
-                    SliderRow(title: usesAge ? "Age" : "Year", value: "\(x(for: min(max(lookUpYear, 1), years)))") {
-                        Slider(value: intBinding($lookUpYear), in: 1...Double(max(years, 2)), step: 1)
-                    }
-                    if let lookUpPoint {
-                        LabeledContent("You'd Have Saved") {
-                            Text(lookUpPoint.balance.cad)
-                                .monospacedDigit()
-                                .foregroundStyle(Color.retirement)
-                        }
-                    }
-                }
-
                 Section("Milestones") {
                     ForEach(points.filter { $0.year % 5 == 0 || $0.year == years }) { point in
                         LabeledContent(label(for: point.year)) {
@@ -115,9 +96,6 @@ struct RetirementView: View {
             }
             .navigationTitle("Retirement")
             .tint(.retirement)
-            .onChange(of: years) { _, newValue in
-                lookUpYear = min(lookUpYear, newValue)
-            }
         }
     }
 

@@ -1,10 +1,11 @@
 import SwiftData
 import SwiftUI
 
-/// First-run setup: monthly income, one essential and one non-essential expense.
+/// First-run setup: monthly income, one essential, one non-essential and one savings item.
+/// Savings can be skipped, with a reminder of why it matters.
 struct WalkthroughView: View {
     enum Step: Int, CaseIterable {
-        case welcome, income, essential, nonEssential, done
+        case welcome, income, essential, nonEssential, savings, done
     }
 
     /// One entry being filled in during the walkthrough.
@@ -22,14 +23,22 @@ struct WalkthroughView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var context
     @AppStorage(BudgetSettings.hasCompletedWalkthroughKey) private var hasCompletedWalkthrough = false
+    @AppStorage(BudgetSettings.showsPayMethodsKey) private var showsPayMethods = BudgetSettings.defaultShowsPayMethods
     @State private var step: Step = .welcome
     @State private var income = Entry(name: "Paycheque", symbolName: "banknote")
     @State private var essential = Entry(name: "", symbolName: "house")
     @State private var nonEssential = Entry(name: "", symbolName: "tv")
+    @State private var savings = Entry(name: "", symbolName: "building.columns")
+    @State private var isConfirmingSkipSavings = false
     @FocusState private var amountFocused: Bool
 
     private var summary: BudgetSummary {
-        BudgetSummary(income: income.amount ?? 0, essentials: essential.amount ?? 0, nonEssentials: nonEssential.amount ?? 0)
+        BudgetSummary(
+            income: income.amount ?? 0,
+            essentials: essential.amount ?? 0,
+            nonEssentials: nonEssential.amount ?? 0,
+            savings: savings.isComplete ? savings.amount ?? 0 : 0
+        )
     }
 
     private var canContinue: Bool {
@@ -38,6 +47,7 @@ struct WalkthroughView: View {
         case .income: income.isComplete
         case .essential: essential.isComplete
         case .nonEssential: nonEssential.isComplete
+        case .savings: savings.isComplete
         }
     }
 
@@ -70,6 +80,14 @@ struct WalkthroughView: View {
                         message: "Something you choose to pay for, like a streaming subscription.",
                         namePrompt: "Streaming subscription"
                     )
+                case .savings:
+                    entrySection(
+                        $savings,
+                        category: .savings,
+                        title: "Add your savings",
+                        message: "Something you put away every month, like an RRSP or TFSA contribution. Not saving yet? You can skip this.",
+                        namePrompt: "TFSA"
+                    )
                 case .done: done
                 }
             }
@@ -83,6 +101,11 @@ struct WalkthroughView: View {
                 }
                 ToolbarItem(placement: .principal) {
                     StepDots(current: step.rawValue, count: Step.allCases.count)
+                }
+                if step == .savings {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button("Skip") { isConfirmingSkipSavings = true }
+                    }
                 }
             }
             .safeAreaBar(edge: .bottom) {
@@ -99,6 +122,15 @@ struct WalkthroughView: View {
                 .padding(.horizontal)
                 .padding(.bottom, 8)
             }
+        }
+        .alert("Skip savings?", isPresented: $isConfirmingSkipSavings) {
+            Button("Add Savings", role: .cancel) {}
+            Button("Skip for Now") {
+                savings.amount = nil
+                move(by: 1)
+            }
+        } message: {
+            Text("MonthyMoney works best when you save something every month, even a little. Your savings drive the retirement projection, so add them on the Budget tab when you can.")
         }
         .interactiveDismissDisabled()
     }
@@ -122,7 +154,7 @@ struct WalkthroughView: View {
                 Text("Welcome to MonthyMoney")
                     .font(.largeTitle.bold())
                     .multilineTextAlignment(.center)
-                Text("Track what comes in and goes out each month, see what you take home, and watch your savings grow. Let's start with three things: your income, one essential and one non-essential.")
+                Text("Track what comes in and goes out each month, see what you take home, and watch your savings grow. Let's start with your income, one essential, one non-essential and what you save.")
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
             }
@@ -149,10 +181,18 @@ struct WalkthroughView: View {
                 .padding(.vertical, 16)
                 .listRowBackground(Color.clear)
             }
-            Section("So Far") {
+            Section {
                 SummaryRow(title: "Income", value: summary.income, systemImage: "banknote", color: .income)
-                SummaryRow(title: "Expenses", value: summary.totalExpenses, systemImage: "cart", color: .essentials)
+                SummaryRow(title: "Expenses", value: summary.essentials + summary.nonEssentials, systemImage: "cart", color: .essentials)
+                SummaryRow(title: "Savings", value: summary.savings, systemImage: "building.columns", color: .savings)
                 SummaryRow(title: "Take Home", value: summary.takeHome, systemImage: "arrow.down.circle", color: .income)
+            } header: {
+                Text("So Far")
+            } footer: {
+                if !savings.isComplete {
+                    Label("You're not saving anything yet. Add a savings item on the Budget tab to get the most out of MonthyMoney.", systemImage: "exclamationmark.circle")
+                        .foregroundStyle(Color.savings)
+                }
             }
         }
     }
@@ -187,11 +227,11 @@ struct WalkthroughView: View {
                         .monospacedDigit()
                         .focused($amountFocused)
                 }
-                if category.usesPayMethod {
+                if showsPayMethods && category.usesPayMethod {
                     PayMethodPicker(selection: entry.payMethod)
                 }
             } footer: {
-                if category.usesPayMethod {
+                if showsPayMethods && category.usesPayMethod {
                     Text("Pick the account or card it comes out of, or leave it for later.")
                 }
             }
@@ -207,7 +247,7 @@ struct WalkthroughView: View {
     }
 
     private func finish() {
-        let entries: [(Entry, BudgetCategory)] = [(income, .income), (essential, .essential), (nonEssential, .nonEssential)]
+        let entries: [(Entry, BudgetCategory)] = [(income, .income), (essential, .essential), (nonEssential, .nonEssential), (savings, .savings)]
         for (entry, category) in entries where entry.isComplete {
             let item = BudgetItem(
                 name: entry.name.trimmingCharacters(in: .whitespacesAndNewlines),

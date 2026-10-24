@@ -30,7 +30,6 @@ struct MonthyMoneyApp: App {
             UserDefaults.standard.set(true, forKey: BudgetSettings.hasCompletedWalkthroughKey)
         }
         #endif
-        SeedData.insertDefaultPayMethodsIfNeeded(into: container.mainContext)
         SyncCleanup.mergeDuplicates(in: container.mainContext)
     }
 

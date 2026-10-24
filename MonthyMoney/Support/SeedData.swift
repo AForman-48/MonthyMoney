@@ -2,8 +2,8 @@ import Foundation
 import SwiftData
 
 enum SeedData {
-    /// The pay methods from the spreadsheet's dropdown.
-    static let defaultPayMethods: [(String, PayMethodColor)] = [
+    /// The pay methods used by the sample budget. New installs start with none.
+    static let samplePayMethods: [(String, PayMethodColor)] = [
         ("WFCU Chqing", .navy),
         ("Tangerine MC", .orange),
         ("TD Visa", .forest),
@@ -12,22 +12,10 @@ enum SeedData {
         ("Various", .gray),
     ]
 
-    private static let didSeedPayMethodsKey = "didSeedPayMethods"
-
-    /// Adds the default pay methods the first time the app runs on a device with none.
-    static func insertDefaultPayMethodsIfNeeded(into context: ModelContext) {
-        let defaults = UserDefaults.standard
-        guard !defaults.bool(forKey: didSeedPayMethodsKey) else { return }
-        defaults.set(true, forKey: didSeedPayMethodsKey)
-        guard ((try? context.fetchCount(FetchDescriptor<PayMethod>())) ?? 0) == 0 else { return }
-        insertPayMethods(into: context)
-        try? context.save()
-    }
-
     @discardableResult
     static func insertPayMethods(into context: ModelContext) -> [String: PayMethod] {
         var methods: [String: PayMethod] = [:]
-        for (index, entry) in defaultPayMethods.enumerated() {
+        for (index, entry) in samplePayMethods.enumerated() {
             let method = PayMethod(name: entry.0, color: entry.1, sortOrder: index)
             context.insert(method)
             methods[entry.0] = method

@@ -20,6 +20,7 @@ enum BudgetSettings {
 
     /// Whether budget rows show their pay method.
     static let showsPayMethodsKey = "showsPayMethods"
+    static let defaultShowsPayMethods = false
 
     static let hasCompletedWalkthroughKey = "hasCompletedWalkthrough"
 }

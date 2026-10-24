@@ -6,7 +6,7 @@ struct SettingsView: View {
     @Environment(\.modelContext) private var context
     @AppStorage(AppAppearance.storageKey) private var appearance: AppAppearance = .system
     @AppStorage(BudgetSettings.paychequesKey) private var paycheques = BudgetSettings.defaultPaycheques
-    @AppStorage(BudgetSettings.showsPayMethodsKey) private var showsPayMethods = true
+    @AppStorage(BudgetSettings.showsPayMethodsKey) private var showsPayMethods = BudgetSettings.defaultShowsPayMethods
     @State private var isConfirmingDelete = false
 
     /// Monthly income counts as two paycheques, so this says how many months of pay a year holds.
@@ -30,13 +30,20 @@ struct SettingsView: View {
                 }
 
                 Section {
-                    Toggle(isOn: $showsPayMethods) {
-                        Label("Show Pay Methods", systemImage: "creditcard")
+                    Toggle(isOn: $showsPayMethods.animation()) {
+                        Label("Pay Methods", systemImage: "creditcard")
+                    }
+                    if showsPayMethods {
+                        NavigationLink {
+                            PayMethodsView()
+                        } label: {
+                            Label("Manage Pay Methods", systemImage: "slider.horizontal.3")
+                        }
                     }
                 } header: {
                     Text("Budget")
                 } footer: {
-                    Text("Shows the account or card each expense comes out of under its name.")
+                    Text("Track the account or card each expense comes out of. Add your own accounts and cards under Manage Pay Methods.")
                 }
 
                 Section {

@@ -6,11 +6,10 @@ struct BudgetView: View {
     @Environment(\.colorScheme) private var colorScheme
     @Query private var items: [BudgetItem]
     @Query(sort: [SortDescriptor(\PayMethod.sortOrder), SortDescriptor(\PayMethod.name)]) private var payMethods: [PayMethod]
-    @AppStorage(BudgetSettings.showsPayMethodsKey) private var showsPayMethods = true
+    @AppStorage(BudgetSettings.showsPayMethodsKey) private var showsPayMethods = BudgetSettings.defaultShowsPayMethods
     @State private var searchText = ""
     @State private var newItemCategory: BudgetCategory?
     @State private var editingItem: BudgetItem?
-    @State private var editingMethod: PayMethod?
     @State private var isShowingSettings = false
     @State private var isShowingPayMethods = false
 
@@ -52,10 +51,6 @@ struct BudgetView: View {
                         }
                     }
                 }
-
-                if searchText.isEmpty {
-                    payMethodsSection
-                }
             }
             .listSectionSpacing(20)
             .animation(.default, value: items.map(\.amount))
@@ -73,8 +68,10 @@ struct BudgetView: View {
                 ToolbarItem(placement: .topBarLeading) {
                     Button("Settings", systemImage: "gearshape") { isShowingSettings = true }
                 }
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Pay Methods", systemImage: "creditcard") { isShowingPayMethods = true }
+                if showsPayMethods {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button("Pay Methods", systemImage: "creditcard") { isShowingPayMethods = true }
+                    }
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     EditButton()
@@ -107,34 +104,6 @@ struct BudgetView: View {
             .sheet(item: $editingItem) { item in
                 BudgetItemEditorView(item: item, category: item.category)
             }
-            .sheet(item: $editingMethod) { method in
-                PayMethodEditorView(method: method)
-            }
-        }
-    }
-
-    private var payMethodsSection: some View {
-        Section {
-            ForEach(payMethods) { method in
-                Button {
-                    editingMethod = method
-                } label: {
-                    HStack {
-                        PayMethodBadge(method: method)
-                        Spacer()
-                        Text(method.monthlyTotal.cad)
-                            .monospacedDigit()
-                            .foregroundStyle(method.monthlyTotal == 0 ? Color.secondary : Color.primary)
-                    }
-                    .contentShape(.rect)
-                }
-                .buttonStyle(.plain)
-            }
-            Button("Manage Pay Methods", systemImage: "slider.horizontal.3") { isShowingPayMethods = true }
-        } header: {
-            Label("Pay Methods", systemImage: "creditcard")
-        } footer: {
-            Text("What comes out of each account or card every month. Tap one to rename it or change its colour.")
         }
     }
 
@@ -152,7 +121,7 @@ struct BudgetView: View {
         }
         .contextMenu {
             Button("Edit", systemImage: "pencil") { editingItem = item }
-            if item.category.usesPayMethod {
+            if showsPayMethods && item.category.usesPayMethod {
                 Picker("Pay Method", systemImage: "creditcard", selection: Binding(
                     get: { item.payMethod },
                     set: { item.payMethod = $0; try? context.save() }

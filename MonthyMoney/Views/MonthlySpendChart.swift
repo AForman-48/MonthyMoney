@@ -22,19 +22,11 @@ struct MonthlySpendChart: View {
         if slices.isEmpty {
             Text("Add income and expenses to see where your money goes.")
                 .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, minHeight: 120)
         } else {
-            ViewThatFits(in: .horizontal) {
-                HStack(spacing: 32) {
-                    chart.frame(width: 240, height: 240)
-                    legend.frame(maxWidth: 320)
-                }
-                .frame(maxWidth: .infinity)
-                VStack(spacing: 20) {
-                    chart.frame(height: 240)
-                    legend
-                }
-            }
-            .padding(.vertical, 8)
+            chart
+                .frame(height: 320)
+                .padding(.vertical, 12)
         }
     }
 
@@ -54,19 +46,19 @@ struct MonthlySpendChart: View {
         .chartAngleSelection(value: $selectedAmount)
         .chartBackground { proxy in
             GeometryReader { geometry in
-                if let anchor = proxy.plotFrame {
+                // The category shows only while its slice is being touched.
+                if let anchor = proxy.plotFrame, let shown = selectedSlice {
                     let frame = geometry[anchor]
-                    let shown = selectedSlice ?? slices.first { $0.kind == .takeHome } ?? slices[0]
                     VStack(spacing: 2) {
                         Text(shown.kind.rawValue)
-                            .font(.caption)
+                            .font(.subheadline)
                             .foregroundStyle(.secondary)
                         Text(shown.share.percent)
-                            .font(.title2.bold())
+                            .font(.largeTitle.bold())
                             .foregroundStyle(shown.kind.color)
                             .monospacedDigit()
                         Text(shown.amount.cadWhole)
-                            .font(.caption)
+                            .font(.subheadline)
                             .foregroundStyle(.secondary)
                             .monospacedDigit()
                     }
@@ -75,30 +67,6 @@ struct MonthlySpendChart: View {
             }
         }
         .animation(.snappy, value: selectedSlice)
-    }
-
-    private var legend: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            ForEach(slices) { slice in
-                HStack(spacing: 10) {
-                    Circle()
-                        .fill(slice.kind.color)
-                        .frame(width: 10, height: 10)
-                    Text(slice.kind.rawValue)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.8)
-                    Spacer()
-                    Text(slice.share.percent)
-                        .foregroundStyle(.secondary)
-                        .monospacedDigit()
-                    Text(slice.amount.cad)
-                        .monospacedDigit()
-                        .frame(minWidth: 90, alignment: .trailing)
-                }
-                .font(.subheadline)
-                .accessibilityElement(children: .combine)
-            }
-        }
     }
 }
 

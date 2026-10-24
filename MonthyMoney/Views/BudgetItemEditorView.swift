@@ -11,6 +11,7 @@ struct BudgetItemEditorView: View {
     @State private var name = ""
     @State private var amount: Double?
     @State private var payMethod: PayMethod?
+    @AppStorage(BudgetSettings.showsPayMethodsKey) private var showsPayMethods = BudgetSettings.defaultShowsPayMethods
     @State private var notes = ""
     @State private var symbolName: String?
     @State private var isChoosingGlyph = false
@@ -49,7 +50,7 @@ struct BudgetItemEditorView: View {
                             Label(category.title, systemImage: category.systemImage).tag(category)
                         }
                     }
-                    if category.usesPayMethod {
+                    if showsPayMethods && category.usesPayMethod {
                         PayMethodPicker(selection: $payMethod)
                     }
                 }

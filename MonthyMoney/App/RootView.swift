@@ -4,7 +4,7 @@ import SwiftData
 import SwiftUI
 
 enum AppTab: String {
-    case budget, sheet, summary, retirement
+    case budget, summary, retirement
 }
 
 struct RootView: View {
@@ -19,9 +19,6 @@ struct RootView: View {
         TabView(selection: $selectedTab) {
             Tab("Budget", systemImage: "list.bullet.rectangle.portrait", value: AppTab.budget) {
                 BudgetView()
-            }
-            Tab("Sheet", systemImage: "tablecells", value: AppTab.sheet) {
-                SheetView()
             }
             Tab("Summary", systemImage: "chart.pie", value: AppTab.summary) {
                 SummaryView()
@@ -43,7 +40,6 @@ struct RootView: View {
         #if DEBUG
         .onAppear {
             switch ScreenshotMode.screen {
-            case "sheet": selectedTab = .sheet
             case "summary": selectedTab = .summary
             case "retirement": selectedTab = .retirement
             case "budget", "settings": selectedTab = .budget
