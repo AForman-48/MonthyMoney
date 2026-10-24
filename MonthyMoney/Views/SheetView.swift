@@ -15,6 +15,8 @@ struct SheetView: View {
     @Environment(\.horizontalSizeClass) private var sizeClass
     @State private var editingItem: BudgetItem?
     @State private var newItemCategory: BudgetCategory?
+    /// The retirement chart position being touched, as a year or an age depending on `usesAge`.
+    @State private var selectedRetirementX: Int?
 
     private var summary: BudgetSummary { BudgetSummary(items: items) }
 
@@ -30,8 +32,21 @@ struct SheetView: View {
             ScrollView {
                 VStack(spacing: 12) {
                     grid(BudgetCategory.allCases.map { category in AnyView(column(for: category)) })
-                    grid([AnyView(totalsBlock), AnyView(annualBlock)])
-                    grid([AnyView(spendBlock), AnyView(retirementBlock)])
+                    if sizeClass == .regular {
+                        // Like the sheet: the summaries stacked on the far left, the charts beside them.
+                        HStack(alignment: .top, spacing: 12) {
+                            summaryStack
+                                .containerRelativeFrame(.horizontal, count: 4, span: 1, spacing: 12)
+                            spendBlock
+                                .frame(maxWidth: .infinity)
+                            retirementBlock
+                                .frame(maxWidth: .infinity)
+                        }
+                    } else {
+                        summaryStack
+                        spendBlock
+                        retirementBlock
+                    }
                 }
                 .padding(.horizontal, 12)
                 .padding(.bottom, 12)
@@ -88,6 +103,16 @@ struct SheetView: View {
 
     // MARK: Totals
 
+    private var summaryStack: some View {
+        VStack(spacing: 12) {
+            totalsBlock
+            annualBlock
+            SheetBlock(color: .retirement) {
+                SheetTotalCell(title: "Retirement Savings", value: points.last?.balance ?? 0, color: .retirement)
+            }
+        }
+    }
+
     private var totalsBlock: some View {
         SheetBlock(color: .income) {
             SheetHeaderCell(title: "MONTHLY", color: .income)
@@ -112,66 +137,71 @@ struct SheetView: View {
     private var spendBlock: some View {
         SheetBlock(color: .secondary) {
             SheetHeaderCell(title: "MONTHLY SPEND", color: .gray)
-            let slices = summary.spendSlices
-            if slices.isEmpty {
-                Text("Add income and expenses to fill the pie.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, minHeight: 120)
-                    .padding(8)
-            } else {
-                VStack(spacing: 8) {
-                    Chart(slices) { slice in
-                        SectorMark(angle: .value("Amount", slice.amount), innerRadius: .ratio(0.55), angularInset: 1)
-                            .cornerRadius(3)
-                            .foregroundStyle(slice.kind.color)
-                            .accessibilityLabel(slice.kind.rawValue)
-                            .accessibilityValue("\(slice.amount.cad), \(slice.share.percent)")
-                    }
-                    .frame(height: 120)
-                    VStack(alignment: .leading, spacing: 3) {
-                        ForEach(slices) { slice in
-                            HStack(spacing: 6) {
-                                Circle().fill(slice.kind.color).frame(width: 8, height: 8)
-                                Text(slice.kind.rawValue).lineLimit(1)
-                                Spacer(minLength: 4)
-                                Text(slice.share.percent).monospacedDigit()
-                            }
-                        }
-                    }
-                    .font(.caption2)
-                    .minimumScaleFactor(0.8)
-                }
-                .padding(8)
-            }
+            MonthlySpendChart(slices: summary.spendSlices)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 4)
         }
     }
 
+    /// Where a year sits on the retirement chart: the year itself, or the age in that year.
+    private func retirementX(for year: Int) -> Int { usesAge ? startAge + year - 1 : year }
+
     private var retirementBlock: some View {
-        SheetBlock(color: .retirement) {
-            SheetHeaderCell(title: "RETIREMENT", color: .retirement)
+        let selected = selectedRetirementX.flatMap { x in points.first { retirementX(for: $0.year) == x } }
+        let shown = selected ?? points.last
+        let axisTitle = usesAge ? "Age" : "Year"
+        return SheetBlock(color: .retirement) {
+            SheetHeaderCell(title: "RETIREMENT SAVINGS", color: .retirement)
             VStack(alignment: .leading, spacing: 4) {
-                Text((points.last?.balance ?? 0).cadWhole)
-                    .font(.headline.bold())
+                Text((shown?.balance ?? 0).cad)
+                    .font(.title3.bold())
                     .monospacedDigit()
                     .foregroundStyle(Color.retirement)
+                    .contentTransition(.numericText(value: shown?.balance ?? 0))
                     .minimumScaleFactor(0.6)
                     .lineLimit(1)
-                Text(usesAge ? "by age \(startAge + years - 1) at \(returnRate.percent)" : "after \(years) years at \(returnRate.percent)")
-                    .font(.caption2)
+                Text(shown.map { usesAge ? "By age \(startAge + $0.year - 1) at \(returnRate.percent)" : "After year \($0.year) at \(returnRate.percent)" } ?? "")
+                    .font(.caption)
                     .foregroundStyle(.secondary)
                 Chart(points) { point in
-                    AreaMark(x: .value("Year", point.year), y: .value("Balance", point.balance))
-                        .foregroundStyle(Color.retirement.opacity(0.25))
-                    LineMark(x: .value("Year", point.year), y: .value("Balance", point.balance))
+                    AreaMark(x: .value(axisTitle, retirementX(for: point.year)), y: .value("Balance", point.balance))
+                        .interpolationMethod(.catmullRom)
+                        .foregroundStyle(
+                            LinearGradient(
+                                colors: [Color.retirement.opacity(0.4), Color.retirement.opacity(0.05)],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                        )
+                    LineMark(x: .value(axisTitle, retirementX(for: point.year)), y: .value("Balance", point.balance))
+                        .interpolationMethod(.catmullRom)
                         .foregroundStyle(Color.retirement)
+                        .lineStyle(StrokeStyle(lineWidth: 2.5))
+                    if let selected, selected.year == point.year {
+                        RuleMark(x: .value(axisTitle, retirementX(for: point.year)))
+                            .foregroundStyle(Color.secondary.opacity(0.5))
+                        PointMark(x: .value(axisTitle, retirementX(for: point.year)), y: .value("Balance", point.balance))
+                            .foregroundStyle(Color.retirement)
+                            .symbolSize(70)
+                    }
                 }
-                .chartXAxis(.hidden)
-                .chartYAxis(.hidden)
-                .frame(height: 90)
-                .accessibilityLabel("Retirement savings by year")
+                .chartXSelection(value: $selectedRetirementX)
+                .chartXScale(domain: retirementX(for: 1)...retirementX(for: max(years, 2)))
+                .chartXAxisLabel(axisTitle)
+                .chartYAxis {
+                    AxisMarks { value in
+                        AxisGridLine()
+                        AxisValueLabel {
+                            if let amount = value.as(Double.self) {
+                                Text(amount, format: .currency(code: "CAD").notation(.compactName))
+                            }
+                        }
+                    }
+                }
+                .frame(height: 220)
+                .accessibilityLabel("Retirement savings by \(axisTitle.lowercased())")
             }
-            .padding(8)
+            .padding(12)
         }
     }
 }
@@ -224,20 +254,24 @@ private struct SheetHeaderCell<Accessory: View>: View {
     }
 }
 
+/// Width of the amount column, shared by the titles and the rows so they line up.
+private let sheetAmountWidth: CGFloat = 76
+
 /// The sub-column titles under a column's header.
 private struct SheetColumnTitles: View {
     let showsMethod: Bool
     let color: Color
 
     var body: some View {
-        HStack(spacing: 4) {
+        HStack(spacing: 6) {
             Text("NAME")
-            Spacer(minLength: 2)
+                .frame(maxWidth: .infinity, alignment: .leading)
             if showsMethod {
                 Text("PAY METHOD")
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
             Text("AMOUNT")
+                .frame(width: sheetAmountWidth, alignment: .trailing)
         }
         .font(.system(size: 9, weight: .semibold))
         .foregroundStyle(color)
@@ -256,15 +290,18 @@ private struct SheetItemCell: View {
     let shaded: Bool
 
     var body: some View {
-        HStack(spacing: 4) {
-            if let symbolName = item.symbolName {
-                Image(systemName: symbolName)
-                    .foregroundStyle(color)
-                    .frame(width: 14)
+        HStack(spacing: 6) {
+            // The glyph sits inside the name column so the pay method column starts at the same place in every row.
+            HStack(spacing: 4) {
+                if let symbolName = item.symbolName {
+                    Image(systemName: symbolName)
+                        .foregroundStyle(color)
+                        .frame(width: 14)
+                }
+                Text(item.name)
+                    .lineLimit(1)
             }
-            Text(item.name)
-                .lineLimit(1)
-                .frame(maxWidth: .infinity, alignment: .leading)
+            .frame(maxWidth: .infinity, alignment: .leading)
             if showsMethod {
                 Text(item.payMethod?.name ?? "")
                     .foregroundStyle(item.payMethod?.color.color ?? .secondary)
@@ -274,7 +311,8 @@ private struct SheetItemCell: View {
             Text(item.amount.cad)
                 .monospacedDigit()
                 .lineLimit(1)
-                .fixedSize()
+                .minimumScaleFactor(0.7)
+                .frame(width: sheetAmountWidth, alignment: .trailing)
         }
         .font(.caption2)
         .padding(.horizontal, 8)
